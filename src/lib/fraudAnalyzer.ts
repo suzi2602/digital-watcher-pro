@@ -19,12 +19,17 @@ const PHISHING_KEYWORDS = [
 ];
 
 const SUSPICIOUS_URL_PATTERNS = [
-  /bit\.ly/i, /tinyurl/i, /goo\.gl/i,
+  /bit\.ly/i, /tinyurl/i, /goo\.gl/i, /t\.co\//i, /rb\.gy/i, /shorturl/i,
   /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/,
-  /\.tk$/i, /\.ml$/i, /\.ga$/i, /\.cf$/i,
+  /\.tk(\/|$)/i, /\.ml(\/|$)/i, /\.ga(\/|$)/i, /\.cf(\/|$)/i, /\.xyz(\/|$)/i, /\.top(\/|$)/i, /\.buzz(\/|$)/i, /\.club(\/|$)/i,
   /@.*@/, /https?:\/\/[^/]*[A-Z].*[A-Z]/,
-  /paypa[l1]|app[l1]e|go[o0]g[l1]e|amaz[o0]n|faceb[o0]{2}k/i,
+  /paypa[l1]|app[l1]e|go[o0]g[l1]e|amaz[o0]n|faceb[o0]{2}k|micros[o0]ft|netfl[i1]x/i,
+  /https?:\/\/[^/]*-[^/]*-[^/]*\./i, // multiple hyphens in domain
+  /https?:\/\/[^/]{50,}\//i, // excessively long domain
+  /https?:\/\/[^/]*\d{5,}/i, // many numbers in domain
 ];
+
+const URL_REGEX = /https?:\/\/[^\s<>"']+|www\.[^\s<>"']+/gi;
 
 const URGENCY_PHRASES = [
   "within 24 hours", "immediately", "right now", "don't delay",
