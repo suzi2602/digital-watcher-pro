@@ -1,3 +1,2 @@
-# Welcome to your Lovable project
+# ScanProtect : Smart Fraud Detection System for Women
 
-TODO: Document your project here
