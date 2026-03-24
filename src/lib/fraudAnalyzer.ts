@@ -19,12 +19,17 @@ const PHISHING_KEYWORDS = [
 ];
 
 const SUSPICIOUS_URL_PATTERNS = [
-  /bit\.ly/i, /tinyurl/i, /goo\.gl/i,
+  /bit\.ly/i, /tinyurl/i, /goo\.gl/i, /t\.co\//i, /rb\.gy/i, /shorturl/i,
   /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/,
-  /\.tk$/i, /\.ml$/i, /\.ga$/i, /\.cf$/i,
+  /\.tk(\/|$)/i, /\.ml(\/|$)/i, /\.ga(\/|$)/i, /\.cf(\/|$)/i, /\.xyz(\/|$)/i, /\.top(\/|$)/i, /\.buzz(\/|$)/i, /\.club(\/|$)/i,
   /@.*@/, /https?:\/\/[^/]*[A-Z].*[A-Z]/,
-  /paypa[l1]|app[l1]e|go[o0]g[l1]e|amaz[o0]n|faceb[o0]{2}k/i,
+  /paypa[l1]|app[l1]e|go[o0]g[l1]e|amaz[o0]n|faceb[o0]{2}k|micros[o0]ft|netfl[i1]x/i,
+  /https?:\/\/[^/]*-[^/]*-[^/]*\./i, // multiple hyphens in domain
+  /https?:\/\/[^/]{50,}\//i, // excessively long domain
+  /https?:\/\/[^/]*\d{5,}/i, // many numbers in domain
 ];
+
+const URL_REGEX = /https?:\/\/[^\s<>"']+|www\.[^\s<>"']+/gi;
 
 const URGENCY_PHRASES = [
   "within 24 hours", "immediately", "right now", "don't delay",
@@ -50,11 +55,38 @@ export function analyzeContent(content: string): AnalysisResult {
     flags.push(`Phishing keywords detected: "${matchedKeywords.slice(0, 3).join('", "')}"`);
   }
 
-  // Check suspicious URLs
-  const urlMatches = SUSPICIOUS_URL_PATTERNS.filter((p) => p.test(content));
-  if (urlMatches.length > 0) {
-    score += urlMatches.length * 15;
-    flags.push("Suspicious URL patterns found");
+  // Detect URLs in content
+  const foundUrls = content.match(URL_REGEX) || [];
+  if (foundUrls.length > 0) {
+    score += 10; // base score for any URL presence
+    flags.push(`${foundUrls.length} URL(s) detected in content`);
+
+    // Check against suspicious URL patterns
+    const urlMatches = SUSPICIOUS_URL_PATTERNS.filter((p) => p.test(content));
+    if (urlMatches.length > 0) {
+      score += urlMatches.length * 15;
+      flags.push("Suspicious URL patterns found (shortened links, odd domains, or spoofed brands)");
+    }
+
+    // Check for HTTP (non-secure) links
+    const insecureUrls = foundUrls.filter((u) => /^http:\/\//i.test(u));
+    if (insecureUrls.length > 0) {
+      score += 10;
+      flags.push("Non-secure (HTTP) links detected — legitimate sites use HTTPS");
+    }
+
+    // Check for mismatch: displayed text vs actual link (common in phishing)
+    if (/\[.*?\]\(https?:\/\/.*?\)/i.test(content) || /href\s*=\s*["']https?:\/\//i.test(content)) {
+      score += 10;
+      flags.push("Embedded hyperlinks detected — verify destination before clicking");
+    }
+  } else {
+    // No URLs, check suspicious patterns in plain text anyway
+    const urlMatches = SUSPICIOUS_URL_PATTERNS.filter((p) => p.test(content));
+    if (urlMatches.length > 0) {
+      score += urlMatches.length * 15;
+      flags.push("Suspicious URL patterns found");
+    }
   }
 
   // Check urgency
